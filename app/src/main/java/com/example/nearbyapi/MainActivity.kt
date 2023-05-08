@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var isDiscovering: Boolean = false
     private var endPointId: String? = null
     private var EMIT_NAME: String  = "Faiz"
-    private var localEndpointName: String?= null
+    private var SERVICE_ID: String?= "com.dooropen.mobile"
 
     private lateinit var localEndpointId: TextView
     private lateinit var availableDevicesText: TextView
@@ -162,7 +162,7 @@ class MainActivity : AppCompatActivity() {
             .setStrategy(Strategy.P2P_STAR)
             .build()
 
-        connectionsClient.startDiscovery(packageName, endpointDiscoveryCallback, discoveryOptions)
+        connectionsClient.startDiscovery(SERVICE_ID!!, endpointDiscoveryCallback, discoveryOptions)
             .addOnSuccessListener {
                 isDiscovering = true
                 Log.d(TAG, "startDiscovering: $isDiscovering")
@@ -190,7 +190,7 @@ class MainActivity : AppCompatActivity() {
             .setStrategy(Strategy.P2P_STAR)
             .build()
 
-        connectionsClient.startAdvertising(EMIT_NAME, packageName, connectionLifecycleCallback, advertisingOptions)
+        connectionsClient.startAdvertising(EMIT_NAME, SERVICE_ID!!, connectionLifecycleCallback, advertisingOptions)
 
             .addOnSuccessListener {
                 isAdvertising = true
@@ -206,14 +206,20 @@ class MainActivity : AppCompatActivity() {
 
     private val connectionLifecycleCallback = object : ConnectionLifecycleCallback(){
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
-            localEndpointName = connectionInfo.endpointName
-            status.text = "Connected to $localEndpointName"
+
+            Log.d(TAG,endpointId+" Connection Info Name "+connectionInfo.getEndpointName()+
+                    " Connection getAuthenticationDigits "+connectionInfo.getAuthenticationDigits()+
+                    " Connection getAuthenticationToken "+connectionInfo.getAuthenticationToken());
+
+            SERVICE_ID = connectionInfo.endpointName
+            status.text = "Connected to $SERVICE_ID"
             // Automatically accept the connection on both sides
             connectionsClient.acceptConnection(endpointId, payloadCallback)
             endPointId = endpointId
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
+            Log.d(TAG, "onConnectionResult: "+endpointId+" Status "+result.getStatus())
             when (result.status.statusCode) {
                 ConnectionsStatusCodes.STATUS_OK -> {
 
@@ -229,16 +235,17 @@ class MainActivity : AppCompatActivity() {
                     endpointsListView.visibility = View.GONE
                 }
                 ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
-                    status.text = "Connection rejected by $localEndpointName"
+                    status.text = "Connection rejected by $SERVICE_ID"
                 }
                 ConnectionsStatusCodes.STATUS_ERROR -> {
-                    status.text = "Error connecting to $localEndpointName"
+                    status.text = "Error connecting to $SERVICE_ID"
                 }
             }
         }
 
         override fun onDisconnected(endpointId: String) {
-            status.text = "Disconnected from $localEndpointName"
+            Log.d(TAG, "onDisconnected: "+endpointId)
+            status.text = "Disconnected from $SERVICE_ID"
         }
     }
 
